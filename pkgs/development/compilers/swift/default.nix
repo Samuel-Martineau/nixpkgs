@@ -14,6 +14,11 @@ let
     # Provided for backwards compatibility.
     inherit stdenv;
 
+    # Prebuilt toolchain from swift.org used as the host compiler to build
+    # swift-unwrapped from source (Swift >= 6 requires a host swiftc >= 5.9).
+    # Build-time only; never part of the runtime closure. Linux-only.
+    swift-bootstrap = callPackage ./bootstrap { };
+
     swift-unwrapped = callPackage ./compiler {
       inherit (llvmPackages) stdenv;
       inherit (darwin) DarwinTools sigtool;
