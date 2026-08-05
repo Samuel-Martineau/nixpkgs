@@ -1,0 +1,20 @@
+Fix compilation errors when building the AST/SIL modules with a host toolchain.
+
+    error: field has incomplete type 'clang::DeclContext::all_lookups_iterator'
+    error: field has incomplete type 'clang::DeclContext::ddiag_iterator'
+
+Originally by Randy Eckenrode <randy@largeandhighquality.com>, rebased onto
+6.3 where the guard macro was renamed from USED_IN_CPP_SOURCE to
+NOT_COMPILED_WITH_SWIFT_PURE_BRIDGING_MODE.
+
+--- a/include/swift/AST/ASTBridging.h
++++ b/include/swift/AST/ASTBridging.h
+@@ -30,6 +30,8 @@
+ #ifdef NOT_COMPILED_WITH_SWIFT_PURE_BRIDGING_MODE
+ #include "swift/AST/Attr.h"
+ #include "swift/AST/Decl.h"
++#include "clang/AST/DeclLookups.h"
++#include "clang/AST/DependentDiagnostic.h"
+ #endif
+
+ SWIFT_BEGIN_NULLABILITY_ANNOTATIONS
