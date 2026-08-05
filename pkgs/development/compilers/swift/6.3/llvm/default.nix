@@ -52,6 +52,11 @@ stdenv.mkDerivation {
   # The Swift build needs the Clang/LLVM libraries and the tblgen utilities,
   # but none of the LLVM tools.
   cmakeFlags = [
+    # LLVM would otherwise normalise the host to x86_64-pc-linux-gnu, while
+    # Swift builds its standard library for x86_64-unknown-linux-gnu, leaving
+    # the compiler unable to find the Swift module for its own default target.
+    "-DLLVM_DEFAULT_TARGET_TRIPLE=${stdenv.hostPlatform.config}"
+    "-DLLVM_HOST_TRIPLE=${stdenv.hostPlatform.config}"
     "-DLLVM_ENABLE_PROJECTS=clang"
     "-DLLVM_BUILD_TOOLS=NO"
     "-DLLVM_INSTALL_UTILS=ON"
