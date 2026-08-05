@@ -35,11 +35,20 @@ stdenv.mkDerivation {
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")
     (lib.cmakeFeature "dispatch_DIR" "${lib.getDev Dispatch}/lib/cmake/dispatch")
     (lib.cmakeFeature "Foundation_DIR" "${lib.getDev Foundation}/lib/cmake/Foundation")
-    # The macro plugin needs swift-syntax, which is consumed from a checkout
-    # rather than an installed package.
-    (lib.cmakeFeature "FETCHCONTENT_SOURCE_DIR_SWIFTSYNTAX" "${sources.swift-syntax}")
-    (lib.cmakeBool "FETCHCONTENT_FULLY_DISCONNECTED" true)
   ];
+
+  # The macro plugin is configured as a nested project with its own, filtered
+  # set of CMake arguments, so FETCHCONTENT_SOURCE_DIR_SWIFTSYNTAX does not
+  # reach it. Point the declaration at the checkout instead of a clone.
+  postPatch = ''
+    substituteInPlace Sources/TestingMacros/CMakeLists.txt \
+      --replace-fail \
+        'GIT_REPOSITORY https://github.com/swiftlang/swift-syntax' \
+        'SOURCE_DIR ${sources.swift-syntax}' \
+      --replace-fail \
+        'GIT_TAG 07bf225e198119c23b2b9a0a3432bdb534498873)' \
+        ')'
+  '';
 
   meta = {
     description = "Modern testing library for Swift";

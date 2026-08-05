@@ -13,8 +13,10 @@ foreach(component
   add_library(${component} SHARED IMPORTED)
   set_property(TARGET ${component} PROPERTY
     IMPORTED_LOCATION "@out@/lib/swift/@swiftOs@/lib${component}@dylibExt@")
+  # The module directory, and lib/swift for the module maps of the C shims
+  # the Swift modules are overlays on.
   set_property(TARGET ${component} PROPERTY
-    INTERFACE_INCLUDE_DIRECTORIES "@out@/lib/swift/@swiftOs@")
+    INTERFACE_INCLUDE_DIRECTORIES "@out@/lib/swift/@swiftOs@" "@out@/lib/swift")
 endforeach()
 
 add_library(_FoundationICU SHARED IMPORTED)
