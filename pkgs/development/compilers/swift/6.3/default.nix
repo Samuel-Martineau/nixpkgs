@@ -21,9 +21,24 @@ let
 
     swift-bootstrap = callPackage ../bootstrap { };
 
+    swift-llvm = callPackage ./llvm {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift-unwrapped = callPackage ./compiler {
+      inherit (llvmPackages) stdenv clang;
+    };
+
+    Dispatch = callPackage ./libdispatch {
+      inherit (llvmPackages) stdenv;
+      # TODO: build the Swift overlay once the wrapper is migrated.
+      useSwift = false;
+      swift = null;
+    };
+
     # Components are added here as they are migrated to 6.3:
-    # swift-unwrapped, wrapper, Dispatch, Foundation, XCTest, swift-testing,
-    # swiftpm, swift-driver, sourcekit-lsp, swift-docc, swift-format.
+    # wrapper, Foundation, XCTest, swift-testing, swiftpm, swift-driver,
+    # sourcekit-lsp, swift-docc, swift-format.
   };
 in
 self
