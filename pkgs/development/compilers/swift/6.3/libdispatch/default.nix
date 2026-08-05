@@ -51,6 +51,18 @@ stdenv.mkDerivation {
     # otherwise more trouble.
     mkdir -p $dev/lib/cmake/dispatch
     export dylibExt="${stdenv.hostPlatform.extensions.sharedLibrary}"
+    # With the Swift overlay enabled the libraries are installed into the
+    # Swift runtime layout instead of plain lib/.
+    export libSubdir="${if useSwift then "lib/swift/linux" else "lib"}"
+    # The Swift overlay build installs the headers next to the runtime; the
+    # plain build puts them in the dev output.
+    ${
+      if useSwift then
+        # linux/ also holds Dispatch.swiftmodule, so `import Dispatch` resolves.
+        ''export headerDirs="\"$out/lib/swift\" \"$out/lib/swift/Block\" \"$out/lib/swift/linux\""''
+      else
+        ''export headerDirs="\"$dev/include\""''
+    }
     substituteAll ${./glue.cmake} $dev/lib/cmake/dispatch/dispatchConfig.cmake
   '';
 

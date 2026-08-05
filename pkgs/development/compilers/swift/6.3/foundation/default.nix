@@ -92,6 +92,13 @@ stdenv.mkDerivation {
 
     appendToVar cmakeFlags "-D_SwiftFoundation_SourceDIR=$PWD/swift-foundation"
     appendToVar cmakeFlags "-D_SwiftFoundationICU_SourceDIR=$PWD/swift-foundation-icu"
+
+    # CMake does not turn the dispatch package's interface include directories
+    # into Swift search paths. `import Dispatch` needs the Swift module, and
+    # the module in turn needs the C module map it is an overlay for.
+    cmakeFlagsArray+=(
+      "-DCMAKE_Swift_FLAGS=-I ${Dispatch}/lib/swift/linux -Xcc -fmodule-map-file=${Dispatch}/lib/swift/dispatch/module.modulemap -Xcc -I${Dispatch}/lib/swift"
+    )
   '';
 
   postInstall = ''

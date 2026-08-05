@@ -37,6 +37,14 @@ stdenv.mkDerivation {
     (lib.cmakeBool "FETCHCONTENT_FULLY_DISCONNECTED" true)
   ];
 
+  # The plugin is dlopened by the compiler's plugin server, and its rpath
+  # resolves relative to its own package, where there is no Swift runtime.
+  postFixup = ''
+    for plugin in $out/lib/swift/host/plugins/*.so; do
+      patchelf --add-rpath "${lib.getLib swift-unwrapped}/lib/swift/linux" "$plugin"
+    done
+  '';
+
   meta = {
     description = "Macro implementations for Swift Foundation";
     homepage = "https://github.com/swiftlang/swift-foundation";
