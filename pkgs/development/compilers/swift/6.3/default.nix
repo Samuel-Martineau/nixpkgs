@@ -25,19 +25,39 @@ let
       inherit (llvmPackages) stdenv;
     };
 
+    # libdispatch without its Swift overlay. The compiler links against this
+    # one, since building the overlay needs a working Swift compiler.
+    dispatch-minimal = callPackage ./libdispatch {
+      inherit (llvmPackages) stdenv;
+      useSwift = false;
+      swift = null;
+    };
+
     swift-unwrapped = callPackage ./compiler {
       inherit (llvmPackages) stdenv clang;
+      Dispatch = dispatch-minimal;
     };
 
     foundation-macros = callPackage ./foundation-macros {
       inherit (llvmPackages) stdenv;
     };
 
+    # The full libdispatch, with the Dispatch module for Swift code.
     Dispatch = callPackage ./libdispatch {
       inherit (llvmPackages) stdenv;
-      # TODO: build the Swift overlay once the wrapper is migrated.
-      useSwift = false;
-      swift = null;
+      swift = swift-unwrapped;
+    };
+
+    Foundation = callPackage ./foundation {
+      inherit (llvmPackages) stdenv;
+    };
+
+    XCTest = callPackage ./xctest {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift-testing = callPackage ./swift-testing {
+      inherit (llvmPackages) stdenv;
     };
 
     # Components are added here as they are migrated to 6.3:

@@ -31,6 +31,13 @@ stdenv.mkDerivation {
     swift
   ];
 
+  # Upstream skips the man pages when the Swift overlay is enabled, which
+  # would leave the man output empty.
+  postPatch = ''
+    substituteInPlace man/CMakeLists.txt \
+      --replace-fail 'if(NOT ENABLE_SWIFT)' 'if(TRUE)'
+  '';
+
   cmakeFlags = lib.optionals useSwift [
     "-DENABLE_SWIFT=ON"
     # Install libraries next to the rest of the toolchain's runtime, without
