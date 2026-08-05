@@ -28,6 +28,22 @@ rec {
       }) workspaceState.object.dependencies;
     };
 
+  # SwiftPM 6 refuses to restore a workspace state that has no `prebuilts`
+  # key ("unable to restore workspace state: keyNotFound"), and silently
+  # re-resolves every dependency from the network instead — which fails in the
+  # build sandbox. Older generated states predate the key, so add it.
+  mkStateFile =
+    workspaceState:
+    json.generate "workspace-state.json" (
+      workspaceState
+      // {
+        object = {
+          prebuilts = [ ];
+        }
+        // workspaceState.object;
+      }
+    );
+
   # Make packaging helpers from swiftpm2nix generated output.
   helpers =
     generated:
@@ -35,6 +51,7 @@ rec {
       inherit (import generated) workspaceStateFile hashes;
       workspaceState = lib.importJSON workspaceStateFile;
       pinFile = mkPinFile workspaceState;
+      stateFile = mkStateFile workspaceState;
     in
     rec {
 
@@ -55,7 +72,7 @@ rec {
       configure = ''
         mkdir -p .build/checkouts
         ln -sf ${pinFile} ./Package.resolved
-        install -m 0600 ${workspaceStateFile} ./.build/workspace-state.json
+        install -m 0600 ${stateFile} ./.build/workspace-state.json
       ''
       + concatStrings (
         mapAttrsToList (name: src: ''
