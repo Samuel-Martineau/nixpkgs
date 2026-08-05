@@ -29,10 +29,6 @@ let
       inherit (llvmPackages) stdenv clang;
     };
 
-    swift-syntax = callPackage ./swift-syntax {
-      inherit (llvmPackages) stdenv;
-    };
-
     Dispatch = callPackage ./libdispatch {
       inherit (llvmPackages) stdenv;
       # TODO: build the Swift overlay once the wrapper is migrated.
