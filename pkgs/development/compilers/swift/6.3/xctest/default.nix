@@ -6,6 +6,7 @@
   ninja,
   swift-unwrapped,
   Foundation,
+  swiftSearchFlags,
   Dispatch,
 }:
 
@@ -35,12 +36,7 @@ stdenv.mkDerivation {
   ];
 
   preConfigure = ''
-    # CMake does not translate the imported targets' include directories into
-    # Swift search paths, so spell out where the modules, the module maps of
-    # the C shims they overlay, and libdispatch's own module live.
-    cmakeFlagsArray+=(
-      "-DCMAKE_Swift_FLAGS=-I ${Foundation}/lib/swift/linux -Xcc -I${Foundation}/lib/swift -I ${Dispatch}/lib/swift/linux -Xcc -fmodule-map-file=${Dispatch}/lib/swift/dispatch/module.modulemap -Xcc -I${Dispatch}/lib/swift"
-    )
+    cmakeFlagsArray+=("-DCMAKE_Swift_FLAGS=${swiftSearchFlags}")
   '';
 
   meta = {

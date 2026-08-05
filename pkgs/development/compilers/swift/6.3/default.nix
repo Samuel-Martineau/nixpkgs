@@ -52,6 +52,16 @@ let
       inherit (llvmPackages) stdenv;
     };
 
+    swiftSearchFlags = callPackage ./swift-search-flags.nix { };
+
+    swift-argument-parser = callPackage ./swift-argument-parser {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift-llbuild = callPackage ./swift-llbuild {
+      inherit (llvmPackages) stdenv;
+    };
+
     XCTest = callPackage ./xctest {
       inherit (llvmPackages) stdenv;
     };
