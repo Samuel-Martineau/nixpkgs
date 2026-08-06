@@ -182,6 +182,13 @@ stdenv.mkDerivation {
     mkdir -p $out/lib/swift/${swiftOs}
     cp swift/*.swiftmodule swift/*.swiftdoc $out/lib/swift/${swiftOs}/
 
+    # Its install rules cover only some of the libraries, but importing any of
+    # these modules makes Swift emit an autolink directive naming the library,
+    # so a dependent needs all of them present.
+    # Several of them are STATIC (PackageFingerprint, SourceKitLSPAPI,
+    # SPMLLBuild, LLBuildManifest), so both kinds have to be taken.
+    cp -n lib/*.so lib/*.a $out/lib/ || true
+
     for expected in Build PackageModel Workspace SourceKitLSPAPI; do
       [ -e "$out/lib/swift/${swiftOs}/$expected.swiftmodule" ] \
         || { echo "error: the $expected module was not installed" >&2; exit 1; }
