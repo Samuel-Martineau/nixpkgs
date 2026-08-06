@@ -424,6 +424,10 @@ stdenv.mkDerivation {
     };
   };
 
+  # 1716 targets, and the Swift-in-Swift stages near the end are largely
+  # serial, so it needs a builder that will not trip Hydra's max-silent-time.
+  requiredSystemFeatures = [ "big-parallel" ];
+
   meta = {
     description = "Swift Programming Language";
     homepage = "https://github.com/swiftlang/swift";

@@ -80,6 +80,10 @@ stdenv.mkDerivation {
     install -Dm444 include/llvm/Config/config.h $out/include/llvm/Config/config.h
   '';
 
+  # Long, and its late stages are largely serial, so it needs a builder that
+  # will not trip Hydra's max-silent-time.
+  requiredSystemFeatures = [ "big-parallel" ];
+
   meta = {
     description = "Swift's fork of LLVM and Clang";
     homepage = "https://github.com/swiftlang/llvm-project";
