@@ -146,6 +146,14 @@ let
       inherit (llvmPackages) stdenv;
     };
 
+    indexstore-db = callPackage ./indexstore-db {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift-docc = callPackage ./swift-docc {
+      inherit (llvmPackages) stdenv;
+    };
+
     # Components are added here as they are migrated to 6.3:
     # sourcekit-lsp, swift-docc, swift-format.
   };
