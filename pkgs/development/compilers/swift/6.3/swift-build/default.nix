@@ -14,7 +14,9 @@
   swift-system,
   swift-tools-protocols,
   swift-tools-support-core,
+  corelibsBuildInputs,
   corelibsCmakeFlags,
+  corelibsRpath,
   Foundation,
   Dispatch,
 }:
@@ -71,9 +73,8 @@ stdenv.mkDerivation {
     swift-system
     swift-tools-protocols
     swift-tools-support-core
-    Foundation
-    Dispatch
-  ];
+  ]
+  ++ corelibsBuildInputs;
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")
@@ -136,7 +137,7 @@ stdenv.mkDerivation {
   # do not survive installing. The build service is the only executable.
   postFixup = ''
     rpath="${lib.getLib swift-unwrapped}/lib/swift/${swiftOs}"
-    rpath="$rpath:${Foundation}/lib/swift/${swiftOs}:${Dispatch}/lib/swift/${swiftOs}"
+    rpath="$rpath${corelibsRpath}"
     rpath="$rpath:${lib.concatStringsSep ":" libraryDirs}"
 
     for binary in $out/bin/*; do

@@ -9,6 +9,7 @@
   swiftSearchFlags,
   swift-asn1,
   swift-crypto,
+  corelibsBuildInputs,
   corelibsCmakeFlags,
   Foundation,
   Dispatch,
@@ -40,9 +41,8 @@ stdenv.mkDerivation {
   buildInputs = [
     swift-asn1
     swift-crypto
-    Foundation
-    Dispatch
-  ];
+  ]
+  ++ corelibsBuildInputs;
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")

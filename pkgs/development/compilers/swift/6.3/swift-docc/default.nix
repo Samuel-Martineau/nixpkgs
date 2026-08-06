@@ -14,7 +14,9 @@
   swift-docc-symbolkit,
   swift-lmdb,
   swift-markdown,
+  corelibsBuildInputs,
   corelibsCmakeFlags,
+  corelibsRpath,
   Foundation,
   Dispatch,
 }:
@@ -66,9 +68,8 @@ stdenv.mkDerivation {
     swift-docc-symbolkit
     swift-lmdb
     swift-markdown
-    Foundation
-    Dispatch
-  ];
+  ]
+  ++ corelibsBuildInputs;
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")
@@ -117,7 +118,7 @@ stdenv.mkDerivation {
 
   postFixup = ''
     rpath="${lib.getLib swift-unwrapped}/lib/swift/${swiftOs}"
-    rpath="$rpath:${Foundation}/lib/swift/${swiftOs}:${Dispatch}/lib/swift/${swiftOs}"
+    rpath="$rpath${corelibsRpath}"
     rpath="$rpath:${lib.concatStringsSep ":" libraryDirs}:${swift-cmark}/lib"
 
     for binary in $out/bin/* $out/lib/*.so; do

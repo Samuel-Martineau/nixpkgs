@@ -9,6 +9,7 @@
   ncurses,
   swift-unwrapped,
   swiftSearchFlags,
+  corelibsBuildInputs,
   corelibsCmakeFlags,
   Foundation,
   Dispatch,
@@ -34,9 +35,8 @@ stdenv.mkDerivation {
     sqlite
     # llbuild links -lcurses for its build progress UI.
     (ncurses.override { unicodeSupport = false; })
-    Foundation
-    Dispatch
-  ];
+  ]
+  ++ corelibsBuildInputs;
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")

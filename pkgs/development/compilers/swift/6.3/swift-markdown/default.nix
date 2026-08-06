@@ -9,6 +9,7 @@
   swiftSearchFlags,
   swift-cmark,
   swift-argument-parser,
+  corelibsBuildInputs,
   corelibsCmakeFlags,
   Foundation,
   Dispatch,
@@ -40,9 +41,8 @@ stdenv.mkDerivation {
   buildInputs = [
     swift-cmark
     swift-argument-parser
-    Foundation
-    Dispatch
-  ];
+  ]
+  ++ corelibsBuildInputs;
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")

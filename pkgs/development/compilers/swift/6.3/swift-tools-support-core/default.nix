@@ -8,6 +8,7 @@
   sqlite,
   swift-unwrapped,
   swiftSearchFlags,
+  corelibsBuildInputs,
   corelibsCmakeFlags,
   Foundation,
   Dispatch,
@@ -36,9 +37,8 @@ stdenv.mkDerivation {
 
   buildInputs = [
     sqlite
-    Foundation
-    Dispatch
-  ];
+  ]
+  ++ corelibsBuildInputs;
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")

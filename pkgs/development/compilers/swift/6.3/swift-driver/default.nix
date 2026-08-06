@@ -11,7 +11,9 @@
   swift-argument-parser,
   swift-llbuild,
   swift-tools-support-core,
+  corelibsBuildInputs,
   corelibsCmakeFlags,
+  corelibsRpath,
   Foundation,
   Dispatch,
 }:
@@ -41,9 +43,8 @@ stdenv.mkDerivation {
     swift-argument-parser
     swift-llbuild
     swift-tools-support-core
-    Foundation
-    Dispatch
-  ];
+  ]
+  ++ corelibsBuildInputs;
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")
@@ -85,8 +86,7 @@ stdenv.mkDerivation {
   postFixup = ''
     rpath="${swift-argument-parser}/lib:${swift-tools-support-core}/lib"
     rpath="$rpath:${swift-llbuild}/lib:${swift-llbuild}/lib/swift/pm/llbuild"
-    rpath="$rpath:${Foundation}/lib/swift/${swift-unwrapped.swiftOs}"
-    rpath="$rpath:${Dispatch}/lib/swift/${swift-unwrapped.swiftOs}"
+    rpath="$rpath${corelibsRpath}"
     rpath="$rpath:${lib.getLib swift-unwrapped}/lib/swift/${swift-unwrapped.swiftOs}"
 
     for binary in $out/bin/* $out/lib/*.so; do

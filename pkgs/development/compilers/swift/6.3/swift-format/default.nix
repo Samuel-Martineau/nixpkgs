@@ -10,7 +10,9 @@
   swift-cmark,
   swift-markdown,
   swift-syntax,
+  corelibsBuildInputs,
   corelibsCmakeFlags,
+  corelibsRpath,
   Foundation,
   Dispatch,
 }:
@@ -49,9 +51,8 @@ stdenv.mkDerivation {
     swift-cmark
     swift-markdown
     swift-syntax
-    Foundation
-    Dispatch
-  ];
+  ]
+  ++ corelibsBuildInputs;
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")
@@ -91,7 +92,7 @@ stdenv.mkDerivation {
 
   postFixup = ''
     rpath="${lib.getLib swift-unwrapped}/lib/swift/${swiftOs}"
-    rpath="$rpath:${Foundation}/lib/swift/${swiftOs}:${Dispatch}/lib/swift/${swiftOs}"
+    rpath="$rpath${corelibsRpath}"
     rpath="$rpath:${lib.concatStringsSep ":" libraryDirs}"
     patchelf --add-rpath "$rpath" $out/bin/swift-format
 

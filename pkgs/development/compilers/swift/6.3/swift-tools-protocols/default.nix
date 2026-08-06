@@ -7,6 +7,7 @@
   substituteAll,
   swift-unwrapped,
   swiftSearchFlags,
+  corelibsBuildInputs,
   corelibsCmakeFlags,
   Foundation,
   Dispatch,
@@ -35,9 +36,8 @@ stdenv.mkDerivation {
   ];
 
   buildInputs = [
-    Foundation
-    Dispatch
-  ];
+  ]
+  ++ corelibsBuildInputs;
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")

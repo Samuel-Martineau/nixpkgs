@@ -42,15 +42,27 @@ let
       inherit (llvmPackages) stdenv;
     };
 
+    # The swift-corelibs-* projects exist because Linux has no Foundation. On
+    # Darwin the real frameworks come with the SDK, so these are not built at
+    # all and dependents get nothing to point at, matching ../5.10.
+    #
     # The full libdispatch, with the Dispatch module for Swift code.
-    Dispatch = callPackage ./libdispatch {
-      inherit (llvmPackages) stdenv;
-      swift = swift-unwrapped;
-    };
+    Dispatch =
+      if stdenv.hostPlatform.isDarwin then
+        null
+      else
+        callPackage ./libdispatch {
+          inherit (llvmPackages) stdenv;
+          swift = swift-unwrapped;
+        };
 
-    Foundation = callPackage ./foundation {
-      inherit (llvmPackages) stdenv;
-    };
+    Foundation =
+      if stdenv.hostPlatform.isDarwin then
+        null
+      else
+        callPackage ./foundation {
+          inherit (llvmPackages) stdenv;
+        };
 
     swiftSearchFlags = callPackage ./swift-search-flags.nix { };
 
@@ -62,6 +74,24 @@ let
       (lib.cmakeFeature "dispatch_DIR" "${lib.getDev Dispatch}/lib/cmake/dispatch")
       (lib.cmakeFeature "Foundation_DIR" "${lib.getDev Foundation}/lib/cmake/Foundation")
     ];
+
+    # And as dependencies. A null cannot simply be left in a buildInputs list:
+    # Nixpkgs asks each element for its `dev` output, which a null does not
+    # have.
+    corelibsBuildInputs = lib.optionals (!stdenv.hostPlatform.isDarwin) [
+      Foundation
+      Dispatch
+    ];
+
+    # The same for the run-time search path, as a fragment to append to an
+    # rpath being assembled in a shell string. Empty on Darwin, where the
+    # dynamic loader finds the SDK's frameworks without being told.
+    corelibsRpath = lib.optionalString (!stdenv.hostPlatform.isDarwin) (
+      lib.concatMapStrings (dir: ":${dir}/lib/swift/${swift-unwrapped.swiftOs}") [
+        Foundation
+        Dispatch
+      ]
+    );
 
     swift-argument-parser = callPackage ./swift-argument-parser {
       inherit (llvmPackages) stdenv;

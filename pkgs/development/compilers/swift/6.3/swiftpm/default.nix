@@ -22,6 +22,7 @@
   swift-system,
   swift-tools-protocols,
   swift-tools-support-core,
+  corelibsRpath,
   Foundation,
   Dispatch,
 }:
@@ -224,7 +225,7 @@ stdenv.mkDerivation {
     # manifest API, are installed here rather than in a dependency.
     rpath="$out/lib:$out/lib/swift/host"
     rpath="$rpath:${lib.getLib swift-unwrapped}/lib/swift/${swiftOs}"
-    rpath="$rpath:${Foundation}/lib/swift/${swiftOs}:${Dispatch}/lib/swift/${swiftOs}"
+    rpath="$rpath${corelibsRpath}"
     rpath="$rpath:${lib.concatStringsSep ":" libraryDirs}"
     # Linked by bare name, so nothing records where they live.
     rpath="$rpath:${lib.getLib sqlite}/lib:${lib.getLib ncurses}/lib"
