@@ -14,7 +14,6 @@
   xadi,
   xtool-darwin-tools,
   curl,
-  glibc,
   libimobiledevice,
   libimobiledevice-glue,
   libplist,
@@ -70,7 +69,6 @@ swiftStdenv.mkDerivation (finalAttrs: {
   buildInputs = [
     xadi
     curl
-    glibc
     libimobiledevice
     libimobiledevice-glue
     libplist
@@ -95,14 +93,17 @@ swiftStdenv.mkDerivation (finalAttrs: {
   # have to travel as flags. The C++ standard library is deliberately absent:
   # the cc-wrapper supplies it through -cxx-isystem, which is why this builds
   # against the default GCC's libstdc++ rather than needing an older one.
-  # -Xcc reaches C compilation and -Xcxx C++; the vendored BoringSSL and zsign
-  # are C++, so both are needed.
+  # The C headers of dependencies SwiftPM does not learn about from
+  # pkg-config. -Xcc reaches C compilation and -Xcxx C++; the vendored
+  # BoringSSL and zsign are C++, so both are needed.
   #
-  # -idirafter rather than -isystem: libstdc++'s <cstdlib> reaches the libc
-  # header with `#include_next <stdlib.h>`, which searches only the
-  # directories *after* the one holding the file doing the including. An
-  # -isystem entry lands before the C++ directory and is therefore skipped;
-  # -idirafter puts it at the very end, where include_next will find it.
+  # -idirafter, never -isystem or CPATH: libstdc++'s <cstdlib> reaches the
+  # libc header through `#include_next <stdlib.h>`, which searches only the
+  # directories *after* the one holding the file doing the including. Anything
+  # placed earlier is skipped, so injecting a path with -isystem (or CPATH,
+  # which behaves like -I) breaks the C++ standard library rather than helping
+  # it. libc itself is deliberately absent here: the cc-wrapper already
+  # supplies it, correctly ordered.
   ++ lib.concatMap (dir: [
     "-Xcc"
     "-idirafter"
@@ -114,7 +115,6 @@ swiftStdenv.mkDerivation (finalAttrs: {
     dir
   ]) (
     map (p: "${lib.getDev p}/include") [
-      glibc
       xz
       zlib
     ]

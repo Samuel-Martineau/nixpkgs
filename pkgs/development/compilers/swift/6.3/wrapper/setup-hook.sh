@@ -34,6 +34,13 @@ swiftWrapper_addImports () {
 
 addEnvHooks "$targetOffset" swiftWrapper_addImports
 
+# The compiler derives its default plugin search path from the resource
+# directory, which lives in the `lib` output while the plugins are installed
+# alongside the binaries. Macros the standard library defines -- @TaskLocal,
+# @Observable -- are compiler plugins, so without this every use of one fails
+# with "plugin for module 'SwiftMacros' not found".
+export NIX_SWIFTFLAGS_COMPILE+=" -plugin-path @swift@/lib/swift/host/plugins"
+
 # Use a postHook here because we rely on NIX_CC, which is set by the cc-wrapper
 # setup hook, so delay until we're sure it was run.
 swiftWrapper_postHook () {
