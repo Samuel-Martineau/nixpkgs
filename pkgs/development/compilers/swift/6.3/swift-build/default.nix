@@ -88,13 +88,22 @@ stdenv.mkDerivation {
     # upstream builds this project without ever installing it, and points
     # dependents at the build tree instead.
     (lib.cmakeFeature "SwiftBuild_INSTALL_LIBDIR" "lib")
+    # For the same reason the install rules only cover ARCHIVE, so a shared
+    # build installs no libraries at all. Static is what they were written
+    # for, and is how SwiftPM consumes these anyway.
+    (lib.cmakeBool "BUILD_SHARED_LIBS" false)
   ];
 
   preConfigure = ''
+    # SWBLLBuild imports llbuild's C API directly, so the Swift module search
+    # paths are not enough: the Clang module it overlays has to be reachable
+    # too, and llbuild's module map is not on any default search path.
     cmakeFlagsArray+=(
       "-DCMAKE_Swift_FLAGS=${swiftSearchFlags} ${
         lib.concatMapStringsSep " " (dir: "-I ${dir}") moduleDirs
-      } ${lib.concatMapStringsSep " " (dir: "-L ${dir}") libraryDirs}"
+      } ${
+        lib.concatMapStringsSep " " (dir: "-L ${dir}") libraryDirs
+      } -Xcc -fmodule-map-file=${swift-llbuild}/include/module.modulemap -Xcc -I${swift-llbuild}/include -Xcc -fmodule-map-file=${lib.getDev swift-tools-protocols}/include/ToolsProtocolsCAtomics/module.modulemap -Xcc -I${lib.getDev swift-tools-protocols}/include/ToolsProtocolsCAtomics"
     )
   '';
 

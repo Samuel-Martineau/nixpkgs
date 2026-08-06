@@ -98,6 +98,11 @@ let
       inherit (llvmPackages) stdenv;
     };
 
+    # The build engine SwiftPM 6 delegates to.
+    swift-build = callPackage ./swift-build {
+      inherit (llvmPackages) stdenv;
+    };
+
     swift = callPackage ./wrapper {
       inherit (llvmPackages) clang;
       swift = swift-unwrapped;
@@ -111,8 +116,11 @@ let
       inherit (llvmPackages) stdenv;
     };
 
+    swiftpm = callPackage ./swiftpm {
+      inherit (llvmPackages) stdenv;
+    };
+
     # Components are added here as they are migrated to 6.3:
-    # wrapper, Foundation, XCTest, swift-testing, swiftpm, swift-driver,
     # sourcekit-lsp, swift-docc, swift-format.
   };
 in
