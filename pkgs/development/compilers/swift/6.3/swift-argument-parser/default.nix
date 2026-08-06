@@ -48,6 +48,17 @@ stdenv.mkDerivation {
   '';
 
   postInstall = ''
+    # ArgumentParserToolInfo is built but not installed, and swift-help
+    # imports it.
+    for lib in $(find . -name 'libArgumentParserToolInfo.*'); do
+      cp "$lib" $out/lib/
+    done
+    for module in $(find . -name 'ArgumentParserToolInfo.swiftmodule' -not -path '*/CMakeFiles/*'); do
+      cp -r "$module" $out/lib/swift/${swift-unwrapped.swiftOs}/
+    done
+    [ -e $out/lib/swift/${swift-unwrapped.swiftOs}/ArgumentParserToolInfo.swiftmodule ] \
+      || { echo "error: ArgumentParserToolInfo was not built" >&2; exit 1; }
+
     # Only exports its CMake package into the build tree, so describe the
     # installed library for dependents (swift-driver, swiftpm).
     mkdir -p $dev/lib/cmake/ArgumentParser

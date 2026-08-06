@@ -102,6 +102,12 @@ stdenv.mkDerivation {
   '';
 
   postInstall = ''
+    # FoundationNetworking and FoundationXML link curl and libxml2 by bare
+    # name, so nothing records where they live and dependents fail to link.
+    for library in $out/lib/swift/${swift-unwrapped.swiftOs}/*.so; do
+      patchelf --add-rpath "${lib.getLib curl}/lib:${lib.getLib libxml2}/lib" "$library"
+    done
+
     # Foundation only exports its CMake package into the build directory, so
     # dependents (XCTest, swift-testing) need one describing the install.
     mkdir -p $dev/lib/cmake/Foundation

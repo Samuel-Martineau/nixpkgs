@@ -62,6 +62,14 @@ let
       inherit (llvmPackages) stdenv;
     };
 
+    swift-tools-support-core = callPackage ./swift-tools-support-core {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift-driver = callPackage ./swift-driver {
+      inherit (llvmPackages) stdenv;
+    };
+
     XCTest = callPackage ./xctest {
       inherit (llvmPackages) stdenv;
     };

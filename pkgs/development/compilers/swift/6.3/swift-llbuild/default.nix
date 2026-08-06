@@ -4,6 +4,7 @@
   callPackage,
   cmake,
   ninja,
+  substituteAll,
   sqlite,
   ncurses,
   swift-unwrapped,
@@ -41,8 +42,9 @@ stdenv.mkDerivation {
     (lib.cmakeFeature "dispatch_DIR" "${lib.getDev Dispatch}/lib/cmake/dispatch")
     (lib.cmakeFeature "Foundation_DIR" "${lib.getDev Foundation}/lib/cmake/Foundation")
     (lib.cmakeBool "BUILD_TESTING" false)
-    # Build the Swift bindings that SwiftPM and swift-driver import.
-    (lib.cmakeBool "LLBUILD_SUPPORT_BINDINGS" true)
+    # A list of bindings to build, not a boolean: SwiftPM and swift-driver
+    # import the Swift ones.
+    (lib.cmakeFeature "LLBUILD_SUPPORT_BINDINGS" "Swift")
   ];
 
   # llbuild links the curses library by its historical name in several
@@ -57,6 +59,24 @@ stdenv.mkDerivation {
 
   preConfigure = ''
     cmakeFlagsArray+=("-DCMAKE_Swift_FLAGS=${swiftSearchFlags}")
+  '';
+
+  postInstall = ''
+    # The Swift bindings install their library but not the module interface
+    # that dependents import.
+    modules=$(find . -name '*.swiftmodule' -not -path '*/CMakeFiles/*')
+    [ -n "$modules" ] || { echo "error: no Swift modules were built" >&2; exit 1; }
+    echo "$modules" | xargs -I{} cp -r {} $out/lib/swift/pm/llbuild/
+
+    # The C API's module map is not installed, but `import llbuild` needs it.
+    cp ${sources.swift-llbuild}/products/libllbuild/include/module.modulemap \
+      $out/include/
+
+    # Only exports its CMake package into the build tree.
+    mkdir -p $out/lib/cmake/llbuild
+    export dylibExt="${stdenv.hostPlatform.extensions.sharedLibrary}"
+    export swiftOs="${swift-unwrapped.swiftOs}"
+    substituteAll ${./glue.cmake} $out/lib/cmake/llbuild/LLBuildConfig.cmake
   '';
 
   meta = {
