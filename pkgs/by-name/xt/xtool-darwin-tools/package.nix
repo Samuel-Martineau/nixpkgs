@@ -1,6 +1,5 @@
 {
   lib,
-  stdenv,
   runCommand,
   llvmPackages,
 }:
@@ -21,10 +20,10 @@
 # far newer LLVM than the fork, which is pinned to a 2025 branch of Swift's
 # 20240723 stable release.
 
-runCommand "darwin-tools-linux-llvm-${llvmPackages.llvm.version}"
+runCommand "xtool-darwin-tools-${llvmPackages.llvm.version}"
   {
     meta = {
-      description = "Toolset for xtool's Darwin SDK: Mach-O linker, libtool and dsymutil for Linux";
+      description = "Darwin-targeting linker, libtool and dsymutil that xtool builds Apple binaries with";
       homepage = "https://github.com/xtool-org/darwin-tools-linux-llvm";
       license = lib.licenses.ncsa;
       platforms = lib.platforms.linux;
