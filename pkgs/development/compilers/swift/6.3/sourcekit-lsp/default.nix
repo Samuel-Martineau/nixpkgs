@@ -4,21 +4,27 @@
   callPackage,
   cmake,
   ninja,
-  substituteAll,
   swift-unwrapped,
   swiftSearchFlags,
   swift-argument-parser,
   swift-asn1,
   swift-cmark,
+  swift-collections,
   swift-crypto,
   swift-docc-symbolkit,
+  swift-llbuild,
   swift-lmdb,
   swift-markdown,
+  swift-syntax,
+  swift-tools-protocols,
+  swift-tools-support-core,
+  swiftpm,
+  indexstore-db,
   Foundation,
   Dispatch,
 }:
 
-# The documentation compiler for Swift.
+# The language server for Swift and C-family languages.
 
 let
   sources = callPackage ../sources.nix { };
@@ -27,30 +33,49 @@ let
   moduleDirs = [
     "${swift-argument-parser}/lib/swift/${swiftOs}"
     "${swift-asn1}/lib/swift/${swiftOs}/${swiftArch}"
+    "${swift-collections}/lib/swift_static/${swiftOs}"
     "${swift-crypto}/lib/swift/${swiftOs}/${swiftArch}"
     "${swift-docc-symbolkit}/lib/swift/${swiftOs}"
+    "${swift-llbuild}/lib/swift/pm/llbuild"
     "${swift-markdown}/lib/swift/${swiftOs}"
+    "${swift-syntax}/lib/swift/host"
+    "${swift-tools-protocols}/lib/swift/${swiftOs}"
+    "${swift-tools-support-core}/lib/swift/${swiftOs}"
+    "${swiftpm}/lib/swift/${swiftOs}"
+    "${indexstore-db}/lib/swift/${swiftOs}"
   ];
 
   libraryDirs = [
     "${swift-argument-parser}/lib"
     "${swift-asn1}/lib/swift/${swiftOs}"
+    "${swift-collections}/lib/swift_static/${swiftOs}"
     "${swift-crypto}/lib/swift/${swiftOs}"
     "${swift-docc-symbolkit}/lib"
+    "${swift-llbuild}/lib"
+    "${swift-llbuild}/lib/swift/pm/llbuild"
     "${swift-lmdb}/lib"
     "${swift-markdown}/lib"
+    "${swift-syntax}/lib/swift/host"
+    "${swift-tools-protocols}/lib"
+    "${swift-tools-support-core}/lib"
+    "${swiftpm}/lib"
+    "${indexstore-db}/lib/swift/${swiftOs}"
   ];
 
   clangModuleDirs = [
+    "${lib.getDev swift-tools-support-core}/include/TSCclibc"
+    "${swift-llbuild}/include"
+    "${lib.getDev swift-tools-protocols}/include/ToolsProtocolsCAtomics"
+    "${lib.getDev swift-syntax}/include/_SwiftSyntaxCShims"
     "${lib.getDev swift-markdown}/include/CAtomic"
     "${lib.getDev swift-lmdb}/include/CLMDB"
   ];
 in
 stdenv.mkDerivation {
-  pname = "swift-docc";
+  pname = "sourcekit-lsp";
 
   inherit (sources) version;
-  src = sources.swift-docc;
+  src = sources.sourcekit-lsp;
 
   nativeBuildInputs = [
     cmake
@@ -61,10 +86,17 @@ stdenv.mkDerivation {
     swift-argument-parser
     swift-asn1
     swift-cmark
+    swift-collections
     swift-crypto
     swift-docc-symbolkit
+    swift-llbuild
     swift-lmdb
     swift-markdown
+    swift-syntax
+    swift-tools-protocols
+    swift-tools-support-core
+    swiftpm
+    indexstore-db
     Foundation
     Dispatch
   ];
@@ -75,10 +107,17 @@ stdenv.mkDerivation {
     (lib.cmakeFeature "Foundation_DIR" "${lib.getDev Foundation}/lib/cmake/Foundation")
     (lib.cmakeFeature "ArgumentParser_DIR" "${lib.getDev swift-argument-parser}/lib/cmake/ArgumentParser")
     (lib.cmakeFeature "SwiftASN1_DIR" "${lib.getDev swift-asn1}/lib/cmake/SwiftASN1")
+    (lib.cmakeFeature "SwiftCollections_DIR" "${lib.getDev swift-collections}/lib/cmake/SwiftCollections")
     (lib.cmakeFeature "SwiftCrypto_DIR" "${lib.getDev swift-crypto}/lib/cmake/SwiftCrypto")
     (lib.cmakeFeature "SwiftMarkdown_DIR" "${lib.getDev swift-markdown}/lib/cmake/SwiftMarkdown")
-    (lib.cmakeFeature "LMDB_DIR" "${lib.getDev swift-lmdb}/lib/cmake/LMDB")
+    (lib.cmakeFeature "SwiftSyntax_DIR" "${lib.getDev swift-syntax}/lib/cmake/SwiftSyntax")
     (lib.cmakeFeature "SymbolKit_DIR" "${lib.getDev swift-docc-symbolkit}/lib/cmake/SymbolKit")
+    (lib.cmakeFeature "SwiftToolsProtocols_DIR" "${lib.getDev swift-tools-protocols}/lib/cmake/SwiftToolsProtocols")
+    (lib.cmakeFeature "TSC_DIR" "${lib.getDev swift-tools-support-core}/lib/cmake/TSC")
+    (lib.cmakeFeature "LLBuild_DIR" "${swift-llbuild}/lib/cmake/llbuild")
+    (lib.cmakeFeature "LMDB_DIR" "${lib.getDev swift-lmdb}/lib/cmake/LMDB")
+    (lib.cmakeFeature "IndexStoreDB_DIR" "${lib.getDev indexstore-db}/lib/cmake/IndexStoreDB")
+    (lib.cmakeFeature "SwiftPM_DIR" "${swiftpm}/lib/cmake/SwiftPM")
     (lib.cmakeFeature "cmark-gfm_DIR" "${swift-cmark}/lib/cmake")
   ];
 
@@ -94,25 +133,6 @@ stdenv.mkDerivation {
     )
   '';
 
-  # Only the docc executable is installed, but sourcekit-lsp imports this
-  # project's libraries to serve documentation, so they and their modules have
-  # to be placed by hand.
-  postInstall = ''
-    mkdir -p $out/lib $out/lib/swift/${swiftOs}
-    cp lib/*.a $out/lib/
-    cp swift/*.swiftmodule swift/*.swiftdoc $out/lib/swift/${swiftOs}/
-
-    for expected in SwiftDocC DocCCommon; do
-      [ -e "$out/lib/swift/${swiftOs}/$expected.swiftmodule" ] \
-        || { echo "error: the $expected module was not installed" >&2; exit 1; }
-    done
-
-    # Only exports its CMake package into the build tree.
-    mkdir -p $out/lib/cmake/SwiftDocC
-    export swiftOs="${swiftOs}"
-    substituteAll ${./glue.cmake} $out/lib/cmake/SwiftDocC/SwiftDocCConfig.cmake
-  '';
-
   postFixup = ''
     rpath="${lib.getLib swift-unwrapped}/lib/swift/${swiftOs}"
     rpath="$rpath:${Foundation}/lib/swift/${swiftOs}:${Dispatch}/lib/swift/${swiftOs}"
@@ -124,14 +144,13 @@ stdenv.mkDerivation {
       patchelf --add-rpath "$rpath" "$binary"
     done
 
-    # docc takes no --version, so exercise it through its help output.
-    $out/bin/docc --help > /dev/null
+    $out/bin/sourcekit-lsp --help > /dev/null
   '';
 
   meta = {
-    description = "Documentation compiler for Swift";
-    homepage = "https://github.com/swiftlang/swift-docc";
-    mainProgram = "docc";
+    description = "Language Server Protocol implementation for Swift and C-family languages";
+    homepage = "https://github.com/swiftlang/sourcekit-lsp";
+    mainProgram = "sourcekit-lsp";
     platforms = lib.platforms.linux;
     license = lib.licenses.asl20;
     teams = [ lib.teams.swift ];

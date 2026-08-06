@@ -2,9 +2,13 @@
 #
 # It builds static libraries, installed straight into lib/ because the
 # variable its install rules use for a subdirectory is one we set ourselves.
+# The `ForPlugin` variants are separate builds of the same sources, for code
+# that runs inside the SourceKit plugin rather than the language server.
 foreach(module
     ToolsProtocolsSwiftExtensions
+    _ToolsProtocolsSwiftExtensionsForPlugin
     SKLogging
+    _SKLoggingForPlugin
     LanguageServerProtocol
     LanguageServerProtocolTransport
     BuildServerProtocol)

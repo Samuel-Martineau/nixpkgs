@@ -154,6 +154,10 @@ let
       inherit (llvmPackages) stdenv;
     };
 
+    sourcekit-lsp = callPackage ./sourcekit-lsp {
+      inherit (llvmPackages) stdenv;
+    };
+
     # Components are added here as they are migrated to 6.3:
     # sourcekit-lsp, swift-docc, swift-format.
   };

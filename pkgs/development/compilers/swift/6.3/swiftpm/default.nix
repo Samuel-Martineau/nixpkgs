@@ -174,6 +174,25 @@ stdenv.mkDerivation {
   '';
 
   postInstall = ''
+    # The libraries are installed but not the modules that go with them, and
+    # sourcekit-lsp imports several of them (Build, PackageModel, Workspace,
+    # SourceKitLSPAPI) to understand a package's structure. Take these from
+    # the module directory rather than searching the build tree, which is also
+    # full of per-source partial modules.
+    mkdir -p $out/lib/swift/${swiftOs}
+    cp swift/*.swiftmodule swift/*.swiftdoc $out/lib/swift/${swiftOs}/
+
+    for expected in Build PackageModel Workspace SourceKitLSPAPI; do
+      [ -e "$out/lib/swift/${swiftOs}/$expected.swiftmodule" ] \
+        || { echo "error: the $expected module was not installed" >&2; exit 1; }
+    done
+
+    # Only exports its CMake package into the build tree.
+    mkdir -p $out/lib/cmake/SwiftPM
+    export dylibExt="${stdenv.hostPlatform.extensions.sharedLibrary}"
+    export swiftOs="${swiftOs}"
+    substituteAll ${./glue.cmake} $out/lib/cmake/SwiftPM/SwiftPMConfig.cmake
+
     # SwiftPM shells out to git to fetch package dependencies, and refuses to
     # start unless it can find the archiver, which it looks for on PATH rather
     # than taking from the compiler it was told to use.
