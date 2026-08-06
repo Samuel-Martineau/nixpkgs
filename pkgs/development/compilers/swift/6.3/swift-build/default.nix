@@ -114,6 +114,16 @@ stdenv.mkDerivation {
     [ -n "$modules" ] || { echo "error: no Swift modules were built" >&2; exit 1; }
     echo "$modules" | xargs -I{} cp -r {} $out/lib/swift/${swiftOs}/
 
+    # SWBCLibc and SWBCSupport are the C modules the Swift ones are overlays
+    # on. Their headers are not installed either, and SwiftPM imports them.
+    mkdir -p $dev/include/SWBCLibc $dev/include/SWBCSupport
+    cp $src/Sources/SWBCLibc/include/* $dev/include/SWBCLibc/
+    cp $src/Sources/SWBCSupport/* $dev/include/SWBCSupport/ 2>/dev/null || true
+    for expected in SWBCLibc SWBCSupport; do
+      [ -e "$dev/include/$expected/module.modulemap" ] \
+        || { echo "error: $expected module map was not installed" >&2; exit 1; }
+    done
+
     # Only exports its CMake package into the build tree.
     mkdir -p $dev/lib/cmake/SwiftBuild
     export swiftOs="${swiftOs}"

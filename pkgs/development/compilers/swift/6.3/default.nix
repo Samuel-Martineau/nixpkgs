@@ -120,6 +120,16 @@ let
       inherit (llvmPackages) stdenv;
     };
 
+    # Documentation toolchain: swift-docc, swift-format and sourcekit-lsp are
+    # built on these.
+    swift-cmark = callPackage ./swift-cmark {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift-docc-symbolkit = callPackage ./swift-docc-symbolkit {
+      inherit (llvmPackages) stdenv;
+    };
+
     # Components are added here as they are migrated to 6.3:
     # sourcekit-lsp, swift-docc, swift-format.
   };

@@ -15,3 +15,8 @@ foreach(component TSCLibc TSCclibc)
   set_property(TARGET ${component} PROPERTY
     INTERFACE_INCLUDE_DIRECTORIES "@out@/lib/swift/@swiftOs@")
 endforeach()
+
+# TSCclibc is a C module, so dependents need its headers rather than a Swift
+# module directory.
+set_property(TARGET TSCclibc PROPERTY
+  INTERFACE_INCLUDE_DIRECTORIES "@dev@/include/TSCclibc")

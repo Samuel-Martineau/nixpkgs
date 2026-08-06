@@ -65,8 +65,10 @@ stdenv.mkDerivation {
     [ -n "$libraries" ] || { echo "error: no extra crypto libraries were built" >&2; exit 1; }
     echo "$libraries" | xargs -I{} cp {} $out/lib/swift/${swiftOs}/
 
-    modules=$(find . -name '*.swiftmodule' -o -name '*.swiftdoc' -not -path '*/CMakeFiles/*')
-    echo "$modules" | xargs -I{} cp -r {} $out/lib/swift/${swiftOs}/${swiftArch}/
+    # Take these from the module directory rather than searching the build
+    # tree: the per-source partial modules are also named *.swiftmodule, and
+    # there are a hundred of them.
+    cp swift/*.swiftmodule swift/*.swiftdoc $out/lib/swift/${swiftOs}/${swiftArch}/
 
     for expected in lib_CryptoExtras${stdenv.hostPlatform.extensions.sharedLibrary} \
       libCryptoBoringWrapper.a libCCryptoBoringSSL.a libCCryptoBoringSSLShims.a; do

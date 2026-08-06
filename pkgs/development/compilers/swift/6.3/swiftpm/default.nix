@@ -8,7 +8,6 @@
   sqlite,
   ncurses,
   makeWrapper,
-  swift,
   swift-unwrapped,
   swiftSearchFlags,
   swift-argument-parser,
@@ -24,197 +23,182 @@
   swift-tools-support-core,
   Foundation,
   Dispatch,
-  XCTest,
 }:
 
-# The Swift Package Manager, built in the two stages upstream uses.
+# The Swift Package Manager.
 #
 # SwiftPM is itself a SwiftPM package, so it cannot be built by SwiftPM until
 # one exists. Upstream breaks the circle by keeping a second build description
-# in CMake, used only for bootstrapping; the result then builds SwiftPM the
-# intended way. The second stage is not optional: `PackageDescription` and
-# `PackagePlugin`, which every package manifest and build plugin in the world
-# compiles against, are products of SwiftPM's own package graph and are laid
-# out by its own build.
+# in CMake. In 6.3 that build is complete: `Sources/Runtimes` -- the split
+# runtime build -- produces PackageDescription and PackagePlugin, the
+# libraries every package manifest and build plugin is compiled against, and
+# installs them into lib/swift/pm/{ManifestAPI,PluginAPI} with their Swift
+# interfaces. Upstream then rebuilds SwiftPM with itself, but that exercises
+# self-hosting rather than producing anything the CMake build lacks, so it is
+# not repeated here.
 #
-# The second stage resolves nothing over the network. Setting
-# SWIFTCI_USE_LOCAL_DEPS makes every package in the graph take its
-# dependencies from sibling directories instead of Git, so the sources below
-# are simply unpacked next to each other. That also sidesteps the dependencies
-# pinned to branches rather than revisions, which SwiftPM re-resolves even from
-# a valid vendored workspace state.
+# (This differs from 5.10, where the CMake build did not install the manifest
+# API and the second stage was needed to get it.)
 
 let
   sources = callPackage ../sources.nix { };
-  inherit (swift-unwrapped) swiftOs;
+  inherit (swift-unwrapped) swiftOs swiftArch;
 
-  # The directory names Package.swift expects for `.package(path: "../…")`.
-  # Note llbuild is not named swift-llbuild here.
-  siblings = {
-    llbuild = sources.swift-llbuild;
-    swift-argument-parser = sources.swift-argument-parser;
-    swift-asn1 = sources.swift-asn1;
-    swift-build = sources.swift-build;
-    swift-certificates = sources.swift-certificates;
-    swift-collections = sources.swift-collections;
-    swift-crypto = sources.swift-crypto;
-    swift-driver = sources.swift-driver;
-    swift-syntax = sources.swift-syntax;
-    swift-system = sources.swift-system;
-    swift-toolchain-sqlite = sources.swift-toolchain-sqlite;
-    swift-tools-protocols = sources.swift-tools-protocols;
-    swift-tools-support-core = sources.swift-tools-support-core;
-  };
+  # CMake does not turn the include directories of imported targets into Swift
+  # search paths, so every module directory has to be named. No two of these
+  # packages install their modules in the same place.
+  moduleDirs = [
+    "${swift-argument-parser}/lib/swift/${swiftOs}"
+    "${swift-asn1}/lib/swift/${swiftOs}/${swiftArch}"
+    "${swift-build}/lib/swift/${swiftOs}"
+    "${swift-certificates}/lib/swift/${swiftOs}"
+    "${swift-collections}/lib/swift_static/${swiftOs}"
+    "${swift-crypto}/lib/swift/${swiftOs}/${swiftArch}"
+    "${swift-driver}/lib/swift/${swiftOs}"
+    "${swift-llbuild}/lib/swift/pm/llbuild"
+    "${swift-system}/lib/swift_static/${swiftOs}"
+    "${swift-tools-protocols}/lib/swift/${swiftOs}"
+    "${swift-tools-support-core}/lib/swift/${swiftOs}"
+  ];
 
-  unpackSiblings = lib.concatStringsSep "\n" (
-    lib.mapAttrsToList (name: src: ''
-      cp -r ${src} ${name}
-      chmod -R u+w ${name}
-    '') siblings
-  );
+  libraryDirs = [
+    "${swift-argument-parser}/lib"
+    "${swift-asn1}/lib/swift/${swiftOs}"
+    "${swift-build}/lib"
+    "${swift-certificates}/lib/swift/${swiftOs}"
+    "${swift-collections}/lib/swift_static/${swiftOs}"
+    "${swift-crypto}/lib/swift/${swiftOs}"
+    "${swift-driver}/lib"
+    "${swift-llbuild}/lib"
+    "${swift-llbuild}/lib/swift/pm/llbuild"
+    "${swift-system}/lib"
+    "${swift-tools-protocols}/lib"
+    "${swift-tools-support-core}/lib"
+  ];
 
-  commonAttrs = {
-    inherit (sources) version;
-    src = sources.swift-package-manager;
-
-    postPatch = ''
-      # The location of xcrun is hardcoded; PATH lookup is what works here.
-      find Sources -name '*.swift' | xargs sed -i -e 's|/usr/bin/xcrun|xcrun|g'
-    '';
-  };
-
-  # Stage one: built by CMake, so it needs no package manager. Used only to
-  # build the real thing.
-  swiftpm-bootstrap = stdenv.mkDerivation (
-    commonAttrs
-    // {
-      pname = "swiftpm-bootstrap";
-
-      nativeBuildInputs = [
-        cmake
-        ninja
-      ];
-
-      buildInputs = [
-        sqlite
-        swift-argument-parser
-        swift-asn1
-        swift-build
-        swift-certificates
-        swift-collections
-        swift-crypto
-        swift-driver
-        swift-llbuild
-        swift-system
-        swift-tools-protocols
-        swift-tools-support-core
-        Foundation
-        Dispatch
-      ];
-
-      cmakeFlags = [
-        (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")
-        (lib.cmakeFeature "dispatch_DIR" "${lib.getDev Dispatch}/lib/cmake/dispatch")
-        (lib.cmakeFeature "Foundation_DIR" "${lib.getDev Foundation}/lib/cmake/Foundation")
-        (lib.cmakeFeature "ArgumentParser_DIR" "${lib.getDev swift-argument-parser}/lib/cmake/ArgumentParser")
-        (lib.cmakeFeature "LLBuild_DIR" "${swift-llbuild}/lib/cmake/llbuild")
-        (lib.cmakeFeature "SwiftASN1_DIR" "${lib.getDev swift-asn1}/lib/cmake/SwiftASN1")
-        (lib.cmakeFeature "SwiftBuild_DIR" "${lib.getDev swift-build}/lib/cmake/SwiftBuild")
-        (lib.cmakeFeature "SwiftCertificates_DIR" "${lib.getDev swift-certificates}/lib/cmake/SwiftCertificates")
-        (lib.cmakeFeature "SwiftCollections_DIR" "${lib.getDev swift-collections}/lib/cmake/SwiftCollections")
-        (lib.cmakeFeature "SwiftCrypto_DIR" "${lib.getDev swift-crypto}/lib/cmake/SwiftCrypto")
-        (lib.cmakeFeature "SwiftDriver_DIR" "${swift-driver}/lib/cmake/SwiftDriver")
-        (lib.cmakeFeature "SwiftSystem_DIR" "${lib.getDev swift-system}/lib/cmake/SwiftSystem")
-        (lib.cmakeFeature "SwiftToolsProtocols_DIR" "${lib.getDev swift-tools-protocols}/lib/cmake/SwiftToolsProtocols")
-        (lib.cmakeFeature "TSC_DIR" "${lib.getDev swift-tools-support-core}/lib/cmake/TSC")
-      ];
-
-      preConfigure = ''
-        cmakeFlagsArray+=("-DCMAKE_Swift_FLAGS=${swiftSearchFlags}")
-      '';
-    }
-  );
+  # The C modules the Swift ones are overlays on. None of these module maps sit
+  # on a default search path, and none of these packages install them without
+  # being told to.
+  clangModuleDirs = [
+    "${lib.getDev swift-tools-support-core}/include/TSCclibc"
+    "${swift-llbuild}/include"
+    "${lib.getDev swift-tools-protocols}/include/ToolsProtocolsCAtomics"
+    "${lib.getDev swift-build}/include/SWBCLibc"
+    "${lib.getDev swift-build}/include/SWBCSupport"
+  ];
 in
-stdenv.mkDerivation (
-  commonAttrs
-  // {
-    pname = "swiftpm";
+stdenv.mkDerivation {
+  pname = "swiftpm";
 
-    nativeBuildInputs = [
-      makeWrapper
-      swift
-      swiftpm-bootstrap
-    ];
+  inherit (sources) version;
+  src = sources.swift-package-manager;
 
-    buildInputs = [
-      ncurses
-      sqlite
-      Foundation
-      Dispatch
-      XCTest
-    ];
+  nativeBuildInputs = [
+    cmake
+    ninja
+    makeWrapper
+  ];
 
-    postUnpack = ''
-      # Every package in this graph resolves its dependencies from sibling
-      # directories when SWIFTCI_USE_LOCAL_DEPS is set, so lay them out.
-      pushd ..
-      ${unpackSiblings}
-      popd
-    '';
+  buildInputs = [
+    ncurses
+    sqlite
+    swift-argument-parser
+    swift-asn1
+    swift-build
+    swift-certificates
+    swift-collections
+    swift-crypto
+    swift-driver
+    swift-llbuild
+    swift-system
+    swift-tools-protocols
+    swift-tools-support-core
+    Foundation
+    Dispatch
+  ];
 
-    configurePhase = ''
-      runHook preConfigure
-      export SWIFTCI_USE_LOCAL_DEPS=1
-      export HOME="$TMPDIR"
-      runHook postConfigure
-    '';
+  postPatch = ''
+    # The location of xcrun is hardcoded; PATH lookup is what works here.
+    find Sources -name '*.swift' | xargs sed -i -e 's|/usr/bin/xcrun|xcrun|g'
+  '';
 
-    buildPhase = ''
-      runHook preBuild
-      TERM=dumb swift-build -c release --disable-sandbox
-      runHook postBuild
-    '';
+  cmakeFlags = [
+    (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")
+    # Upstream builds against a Foundation that comes with the toolchain
+    # rather than as a CMake package, so its `find_package(Foundation QUIET)`
+    # fails and the blocks guarded by `Foundation_FOUND` never run. Those
+    # blocks refer to a target `Dispatch` that no Foundation package defines,
+    # and to `Fooundation`, which is a typo -- neither can work, so letting
+    # the package be found only turns dead code into a configure failure.
+    # Nixpkgs does ship CMake packages for both, and the setup hook puts every
+    # build input on CMAKE_PREFIX_PATH, so they have to be hidden explicitly.
+    # Foundation is found through the Swift search flags instead.
+    (lib.cmakeBool "CMAKE_DISABLE_FIND_PACKAGE_Foundation" true)
+    (lib.cmakeBool "CMAKE_DISABLE_FIND_PACKAGE_dispatch" true)
+    (lib.cmakeFeature "ArgumentParser_DIR" "${lib.getDev swift-argument-parser}/lib/cmake/ArgumentParser")
+    (lib.cmakeFeature "LLBuild_DIR" "${swift-llbuild}/lib/cmake/llbuild")
+    (lib.cmakeFeature "SwiftASN1_DIR" "${lib.getDev swift-asn1}/lib/cmake/SwiftASN1")
+    (lib.cmakeFeature "SwiftBuild_DIR" "${lib.getDev swift-build}/lib/cmake/SwiftBuild")
+    (lib.cmakeFeature "SwiftCertificates_DIR" "${lib.getDev swift-certificates}/lib/cmake/SwiftCertificates")
+    (lib.cmakeFeature "SwiftCollections_DIR" "${lib.getDev swift-collections}/lib/cmake/SwiftCollections")
+    (lib.cmakeFeature "SwiftCrypto_DIR" "${lib.getDev swift-crypto}/lib/cmake/SwiftCrypto")
+    (lib.cmakeFeature "SwiftDriver_DIR" "${swift-driver}/lib/cmake/SwiftDriver")
+    (lib.cmakeFeature "SwiftSystem_DIR" "${lib.getDev swift-system}/lib/cmake/SwiftSystem")
+    (lib.cmakeFeature "SwiftToolsProtocols_DIR" "${lib.getDev swift-tools-protocols}/lib/cmake/SwiftToolsProtocols")
+    (lib.cmakeFeature "TSC_DIR" "${lib.getDev swift-tools-support-core}/lib/cmake/TSC")
+    # Without this, CMake clones swift-syntax from GitHub while configuring,
+    # to build the macros the manifest API uses.
+    (lib.cmakeFeature "SWIFTPM_PATH_TO_SWIFT_SYNTAX_SOURCE" "${sources.swift-syntax}")
+    (lib.cmakeBool "FETCHCONTENT_FULLY_DISCONNECTED" true)
+  ];
 
-    # Derived from Utilities/bootstrap, see install_swiftpm.
-    installPhase = ''
-      runHook preInstall
+  preConfigure = ''
+    cmakeFlagsArray+=(
+      "-DCMAKE_Swift_FLAGS=${swiftSearchFlags} ${
+        lib.concatMapStringsSep " " (dir: "-I ${dir}") moduleDirs
+      } ${lib.concatMapStringsSep " " (dir: "-L ${dir}") libraryDirs} ${
+        lib.concatMapStringsSep " " (
+          dir: "-Xcc -fmodule-map-file=${dir}/module.modulemap -Xcc -I${dir}"
+        ) clangModuleDirs
+      }"
+    )
+  '';
 
-      binPath="$(swift-build --show-bin-path -c release --disable-sandbox)"
-      mkdir -p $out/bin $out/lib/swift
+  postInstall = ''
+    # SwiftPM shells out to git to fetch package dependencies.
+    for tool in $out/bin/swift-*; do
+      [ -f "$tool" ] || continue
+      wrapProgram "$tool" --prefix PATH : ${lib.makeBinPath [ git ]}
+    done
+  '';
 
-      cp "$binPath/swift-package-manager" $out/bin/swift-package
-      wrapProgram $out/bin/swift-package --prefix PATH : ${lib.makeBinPath [ git ]}
-      for tool in swift-build swift-test swift-run swift-package-collection; do
-        ln -s $out/bin/swift-package $out/bin/$tool
-      done
+  postFixup = ''
+    rpath="${lib.getLib swift-unwrapped}/lib/swift/${swiftOs}"
+    rpath="$rpath:${Foundation}/lib/swift/${swiftOs}:${Dispatch}/lib/swift/${swiftOs}"
+    rpath="$rpath:${lib.concatStringsSep ":" libraryDirs}"
 
-      # The libraries every package manifest and build plugin is compiled
-      # against.
-      installSwiftpmModule() {
-        mkdir -p $out/lib/swift/pm/$2
-        cp "$binPath/lib$1${stdenv.hostPlatform.extensions.sharedLibrary}" $out/lib/swift/pm/$2/
-        if [ -f "$binPath/$1.swiftinterface" ]; then
-          cp "$binPath/$1.swiftinterface" $out/lib/swift/pm/$2/
-        else
-          cp -r "$binPath/$1.swiftmodule" $out/lib/swift/pm/$2/
-        fi
-        cp "$binPath/$1.swiftdoc" $out/lib/swift/pm/$2/
-      }
-      installSwiftpmModule PackageDescription ManifestAPI
-      installSwiftpmModule PackagePlugin PluginAPI
+    for binary in $out/bin/.*-wrapped $out/lib/swift/pm/*/*.so; do
+      [ -f "$binary" ] || continue
+      patchelf --print-rpath "$binary" >/dev/null 2>&1 || continue
+      patchelf --add-rpath "$rpath" "$binary"
+    done
 
-      runHook postInstall
-    '';
+    # The manifest API is what every package's Package.swift compiles against,
+    # so a build that silently omits it is worse than one that fails.
+    for expected in ManifestAPI/libPackageDescription.so PluginAPI/libPackagePlugin.so; do
+      [ -e "$out/lib/swift/pm/$expected" ] \
+        || { echo "error: $expected was not installed" >&2; exit 1; }
+    done
 
-    passthru = { inherit swiftpm-bootstrap; };
+    $out/bin/swift-package --help > /dev/null
+  '';
 
-    meta = {
-      description = "Package manager for the Swift programming language";
-      homepage = "https://github.com/swiftlang/swift-package-manager";
-      mainProgram = "swift-package";
-      platforms = lib.platforms.linux;
-      license = lib.licenses.asl20;
-      teams = [ lib.teams.swift ];
-    };
-  }
-)
+  meta = {
+    description = "Package manager for the Swift programming language";
+    homepage = "https://github.com/swiftlang/swift-package-manager";
+    mainProgram = "swift-package";
+    platforms = lib.platforms.linux;
+    license = lib.licenses.asl20;
+    teams = [ lib.teams.swift ];
+  };
+}

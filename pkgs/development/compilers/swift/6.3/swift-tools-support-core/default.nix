@@ -64,6 +64,14 @@ stdenv.mkDerivation {
     [ -n "$modules" ] || { echo "error: no Swift modules were built" >&2; exit 1; }
     echo "$modules" | xargs -I{} cp -r {} $out/lib/swift/${swift-unwrapped.swiftOs}/
 
+    # TSCclibc is the C shim TSCBasic is an overlay on. Its headers and the
+    # module map naming them are not installed, but SwiftPM imports the module
+    # directly.
+    mkdir -p $dev/include/TSCclibc
+    cp $src/Sources/TSCclibc/include/* $dev/include/TSCclibc/
+    [ -e $dev/include/TSCclibc/module.modulemap ] \
+      || { echo "error: TSCclibc module map was not installed" >&2; exit 1; }
+
     # Only exports its CMake package into the build tree.
     mkdir -p $dev/lib/cmake/TSC
     export dylibExt="${stdenv.hostPlatform.extensions.sharedLibrary}"
