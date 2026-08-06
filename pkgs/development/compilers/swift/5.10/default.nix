@@ -82,7 +82,7 @@ let
       inherit (llvmPackages) stdenv;
     };
 
-    swiftpm2nix = callPackage ./swiftpm2nix { };
+    swiftpm2nix = callPackage ../swiftpm2nix { };
 
   };
 

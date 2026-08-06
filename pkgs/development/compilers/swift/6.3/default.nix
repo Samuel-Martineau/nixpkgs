@@ -158,6 +158,12 @@ let
       inherit (llvmPackages) stdenv;
     };
 
+    # Not used by anything in this scope -- every repository in the toolchain
+    # ships a CMakeLists, so none of them need their SwiftPM dependencies
+    # vendored -- but Swift packages elsewhere in Nixpkgs are built with it,
+    # and it is reached through this scope.
+    swiftpm2nix = callPackage ../swiftpm2nix { };
+
     # Components are added here as they are migrated to 6.3:
     # sourcekit-lsp, swift-docc, swift-format.
   };
