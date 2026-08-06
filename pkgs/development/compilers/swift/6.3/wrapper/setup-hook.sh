@@ -34,12 +34,16 @@ swiftWrapper_addImports () {
 
 addEnvHooks "$targetOffset" swiftWrapper_addImports
 
-# The compiler derives its default plugin search path from the resource
-# directory, which lives in the `lib` output while the plugins are installed
-# alongside the binaries. Macros the standard library defines -- @TaskLocal,
-# @Observable -- are compiler plugins, so without this every use of one fails
-# with "plugin for module 'SwiftMacros' not found".
-export NIX_SWIFTFLAGS_COMPILE+=" -plugin-path @swift@/lib/swift/host/plugins"
+# Macros the standard library defines -- @TaskLocal, @Observable -- are
+# compiler plugins, and the compiler looks for them in a directory derived
+# from its resource path. That path is in the `lib` output while the plugins
+# are installed beside the binaries, so nothing is found by default.
+#
+# The server has to be named as well as the directory. swift-driver runs
+# plugins out of process and resolves the server relative to a toolchain root
+# it works out for itself, which the split outputs defeat; naming only the
+# directory gets as far as finding the plugin and then failing to load it.
+export NIX_SWIFTFLAGS_COMPILE+=" -external-plugin-path @swift@/lib/swift/host/plugins#@swift@/bin/swift-plugin-server"
 
 # Use a postHook here because we rely on NIX_CC, which is set by the cc-wrapper
 # setup hook, so delay until we're sure it was run.
