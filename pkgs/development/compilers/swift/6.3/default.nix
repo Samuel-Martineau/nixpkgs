@@ -130,6 +130,14 @@ let
       inherit (llvmPackages) stdenv;
     };
 
+    swift-lmdb = callPackage ./swift-lmdb {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift-syntax = callPackage ./swift-syntax {
+      inherit (llvmPackages) stdenv;
+    };
+
     # Components are added here as they are migrated to 6.3:
     # sourcekit-lsp, swift-docc, swift-format.
   };

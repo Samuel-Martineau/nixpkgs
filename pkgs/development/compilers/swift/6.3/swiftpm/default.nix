@@ -152,6 +152,14 @@ stdenv.mkDerivation {
     (lib.cmakeBool "FETCHCONTENT_FULLY_DISCONNECTED" true)
   ];
 
+  # The vendored swift-syntax marks SwiftCompilerPlugin EXCLUDE_FROM_ALL, so
+  # the default target never builds it, but its install rule runs regardless
+  # and then fails on the missing library.
+  ninjaFlags = [
+    "all"
+    "SwiftCompilerPlugin"
+  ];
+
   preConfigure = ''
     cmakeFlagsArray+=(
       "-DCMAKE_Swift_FLAGS=${swiftSearchFlags} ${
