@@ -96,16 +96,31 @@ stdenv.mkDerivation {
     # CMake does not turn the dispatch package's interface include directories
     # into Swift search paths. `import Dispatch` needs the Swift module, and
     # the module in turn needs the C module map it is an overlay for.
+    #
+    # Runtime library paths deliberately are not passed here: this project sets
+    # CMAKE_INSTALL_RPATH itself, so CMake rewrites them away on install. They
+    # are applied in postInstall instead.
     cmakeFlagsArray+=(
       "-DCMAKE_Swift_FLAGS=-I ${Dispatch}/lib/swift/linux -Xcc -fmodule-map-file=${Dispatch}/lib/swift/dispatch/module.modulemap -Xcc -I${Dispatch}/lib/swift"
     )
   '';
 
   postInstall = ''
-    # FoundationNetworking and FoundationXML link curl and libxml2 by bare
-    # name, so nothing records where they live and dependents fail to link.
+    # This project sets CMAKE_INSTALL_RPATH to $ORIGIN, so CMake replaces the
+    # library paths recorded at link time when it installs. Record them again
+    # here, which is the only point they survive.
+    #
+    # These libraries have to name the Swift runtime and libdispatch even
+    # though whatever loads them already does: linkers emit DT_RUNPATH, which,
+    # unlike DT_RPATH, is not used to resolve the dependencies of a dependency.
+    # curl and libxml2 are linked by bare name by FoundationNetworking and
+    # FoundationXML, so nothing records where they live either.
+    rpath="${lib.getLib swift-unwrapped}/lib/swift/${swift-unwrapped.swiftOs}"
+    rpath="$rpath:${Dispatch}/lib/swift/${swift-unwrapped.swiftOs}"
+    rpath="$rpath:${lib.getLib curl}/lib:${lib.getLib libxml2}/lib"
+
     for library in $out/lib/swift/${swift-unwrapped.swiftOs}/*.so; do
-      patchelf --add-rpath "${lib.getLib curl}/lib:${lib.getLib libxml2}/lib" "$library"
+      patchelf --add-rpath "$rpath" "$library"
     done
 
     # Foundation only exports its CMake package into the build directory, so

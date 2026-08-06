@@ -1,4 +1,9 @@
-{ Foundation, Dispatch }:
+{
+  lib,
+  swift-unwrapped,
+  Foundation,
+  Dispatch,
+}:
 
 # CMake does not translate the include directories of imported targets into
 # Swift search paths, so every package that uses Foundation or libdispatch has
@@ -22,4 +27,9 @@ builtins.concatStringsSep " " [
   "-L ${Dispatch}/lib/swift/linux"
   "-Xlinker -rpath -Xlinker ${Foundation}/lib/swift/linux"
   "-Xlinker -rpath -Xlinker ${Dispatch}/lib/swift/linux"
+
+  # Linkers record DT_RUNPATH, which unlike DT_RPATH is not used to resolve
+  # the dependencies of dependencies, so every library has to name the Swift
+  # runtime itself rather than relying on whatever loads it.
+  "-Xlinker -rpath -Xlinker ${lib.getLib swift-unwrapped}/lib/swift/linux"
 ]
