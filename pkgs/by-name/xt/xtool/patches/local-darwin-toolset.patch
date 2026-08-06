@@ -1,0 +1,36 @@
+Take the Darwin toolset from a local directory instead of downloading it.
+
+xtool fetches a release tarball of ld64.lld, dsymutil and libtool from
+github.com the first time an SDK is built. Nixpkgs builds those tools from
+source instead (see xtool-darwin-tools) and points at them with
+XTOOL_DARWIN_TOOLSET, which is the one download of xtool's that can be
+replaced -- the rest are Apple artifacts or live Apple APIs.
+
+The contents are symlinked rather than copied: the toolset is only ever read,
+and the generated toolset.json refers to it as `toolset/bin`.
+
+--- a/Sources/XToolSupport/SDKBuilder.swift
++++ b/Sources/XToolSupport/SDKBuilder.swift
+@@ -179,6 +179,22 @@ struct SDKBuilder {
+             withIntermediateDirectories: false
+         )
+ 
++        if let localToolset = ProcessInfo.processInfo.environment["XTOOL_DARWIN_TOOLSET"] {
++            let source = URL(fileURLWithPath: localToolset, isDirectory: true)
++            let entries = try FileManager.default.contentsOfDirectory(atPath: source.path)
++            guard !entries.isEmpty else {
++                throw Console.Error("XTOOL_DARWIN_TOOLSET is empty: \(localToolset)")
++            }
++            for entry in entries {
++                try FileManager.default.createSymbolicLink(
++                    at: toolsetDir.appendingPathComponent(entry),
++                    withDestinationURL: source.appendingPathComponent(entry)
++                )
++            }
++            print("[Using local toolset] \(localToolset)")
++            return
++        }
++
+         @Dependency(\.httpClient) var httpClient
+         let url = URL(string: """
+         https://github.com/xtool-org/darwin-tools-linux-llvm/releases/download/\
