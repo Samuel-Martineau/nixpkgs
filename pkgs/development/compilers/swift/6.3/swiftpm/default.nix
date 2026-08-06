@@ -5,6 +5,7 @@
   cmake,
   ninja,
   git,
+  binutils,
   sqlite,
   ncurses,
   makeWrapper,
@@ -173,10 +174,17 @@ stdenv.mkDerivation {
   '';
 
   postInstall = ''
-    # SwiftPM shells out to git to fetch package dependencies.
+    # SwiftPM shells out to git to fetch package dependencies, and refuses to
+    # start unless it can find the archiver, which it looks for on PATH rather
+    # than taking from the compiler it was told to use.
     for tool in $out/bin/swift-*; do
       [ -f "$tool" ] || continue
-      wrapProgram "$tool" --prefix PATH : ${lib.makeBinPath [ git ]}
+      wrapProgram "$tool" --prefix PATH : ${
+        lib.makeBinPath [
+          git
+          binutils
+        ]
+      }
     done
   '';
 
@@ -187,6 +195,8 @@ stdenv.mkDerivation {
     rpath="$rpath:${lib.getLib swift-unwrapped}/lib/swift/${swiftOs}"
     rpath="$rpath:${Foundation}/lib/swift/${swiftOs}:${Dispatch}/lib/swift/${swiftOs}"
     rpath="$rpath:${lib.concatStringsSep ":" libraryDirs}"
+    # Linked by bare name, so nothing records where they live.
+    rpath="$rpath:${lib.getLib sqlite}/lib:${lib.getLib ncurses}/lib"
 
     for binary in $out/bin/.*-wrapped $out/lib/*.so $out/lib/swift/host/*.so $out/lib/swift/pm/*/*.so; do
       [ -f "$binary" ] || continue

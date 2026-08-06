@@ -12,6 +12,19 @@ swiftWrapper_addImports () {
             export NIX_LDFLAGS+=" -L $1/$subdir"
         fi
     done
+
+    # A Swift module that overlays a C one -- Dispatch over libdispatch, for
+    # instance -- cannot be imported unless the Clang module it overlays can
+    # be found too, which needs the module map by name and its header
+    # directory. Neither is implied by the Swift import paths above.
+    if [[ -d "$1/lib/swift" ]]; then
+        export NIX_SWIFTFLAGS_COMPILE+=" -Xcc -I$1/lib/swift"
+        for modulemap in "$1"/lib/swift/*/module.modulemap; do
+            if [[ -f "$modulemap" ]]; then
+                export NIX_SWIFTFLAGS_COMPILE+=" -Xcc -fmodule-map-file=$modulemap"
+            fi
+        done
+    fi
 }
 
 addEnvHooks "$targetOffset" swiftWrapper_addImports
