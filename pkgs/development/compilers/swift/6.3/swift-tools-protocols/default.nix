@@ -7,6 +7,7 @@
   substituteAll,
   swift-unwrapped,
   swiftSearchFlags,
+  corelibsCmakeFlags,
   Foundation,
   Dispatch,
 }:
@@ -40,8 +41,9 @@ stdenv.mkDerivation {
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")
-    (lib.cmakeFeature "dispatch_DIR" "${lib.getDev Dispatch}/lib/cmake/dispatch")
-    (lib.cmakeFeature "Foundation_DIR" "${lib.getDev Foundation}/lib/cmake/Foundation")
+  ]
+  ++ corelibsCmakeFlags
+  ++ [
     # The install rules use this as their destination, but nothing sets it:
     # upstream builds this project without ever installing it, and points
     # dependents at the build tree instead.

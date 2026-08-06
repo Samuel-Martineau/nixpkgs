@@ -14,6 +14,7 @@
   swift-system,
   swift-tools-protocols,
   swift-tools-support-core,
+  corelibsCmakeFlags,
   Foundation,
   Dispatch,
 }:
@@ -76,8 +77,9 @@ stdenv.mkDerivation {
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")
-    (lib.cmakeFeature "dispatch_DIR" "${lib.getDev Dispatch}/lib/cmake/dispatch")
-    (lib.cmakeFeature "Foundation_DIR" "${lib.getDev Foundation}/lib/cmake/Foundation")
+  ]
+  ++ corelibsCmakeFlags
+  ++ [
     (lib.cmakeFeature "ArgumentParser_DIR" "${lib.getDev swift-argument-parser}/lib/cmake/ArgumentParser")
     (lib.cmakeFeature "LLBuild_DIR" "${swift-llbuild}/lib/cmake/llbuild")
     (lib.cmakeFeature "SwiftDriver_DIR" "${swift-driver}/lib/cmake/SwiftDriver")

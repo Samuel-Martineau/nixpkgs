@@ -8,6 +8,7 @@
   swift-unwrapped,
   swiftSearchFlags,
   swift-lmdb,
+  corelibsCmakeFlags,
   Foundation,
   Dispatch,
 }:
@@ -43,8 +44,9 @@ stdenv.mkDerivation {
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")
-    (lib.cmakeFeature "dispatch_DIR" "${lib.getDev Dispatch}/lib/cmake/dispatch")
-    (lib.cmakeFeature "Foundation_DIR" "${lib.getDev Foundation}/lib/cmake/Foundation")
+  ]
+  ++ corelibsCmakeFlags
+  ++ [
     (lib.cmakeFeature "LMDB_DIR" "${lib.getDev swift-lmdb}/lib/cmake/LMDB")
     (lib.cmakeBool "BUILD_SHARED_LIBS" true)
   ];

@@ -10,6 +10,7 @@
   swift-cmark,
   swift-markdown,
   swift-syntax,
+  corelibsCmakeFlags,
   Foundation,
   Dispatch,
 }:
@@ -54,8 +55,9 @@ stdenv.mkDerivation {
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")
-    (lib.cmakeFeature "dispatch_DIR" "${lib.getDev Dispatch}/lib/cmake/dispatch")
-    (lib.cmakeFeature "Foundation_DIR" "${lib.getDev Foundation}/lib/cmake/Foundation")
+  ]
+  ++ corelibsCmakeFlags
+  ++ [
     (lib.cmakeFeature "ArgumentParser_DIR" "${lib.getDev swift-argument-parser}/lib/cmake/ArgumentParser")
     (lib.cmakeFeature "cmark-gfm_DIR" "${swift-cmark}/lib/cmake")
     (lib.cmakeFeature "SwiftMarkdown_DIR" "${lib.getDev swift-markdown}/lib/cmake/SwiftMarkdown")

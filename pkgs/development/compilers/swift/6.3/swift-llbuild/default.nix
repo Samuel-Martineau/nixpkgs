@@ -9,6 +9,7 @@
   ncurses,
   swift-unwrapped,
   swiftSearchFlags,
+  corelibsCmakeFlags,
   Foundation,
   Dispatch,
 }:
@@ -39,8 +40,9 @@ stdenv.mkDerivation {
 
   cmakeFlags = [
     (lib.cmakeFeature "CMAKE_Swift_COMPILER" "${swift-unwrapped}/bin/swiftc")
-    (lib.cmakeFeature "dispatch_DIR" "${lib.getDev Dispatch}/lib/cmake/dispatch")
-    (lib.cmakeFeature "Foundation_DIR" "${lib.getDev Foundation}/lib/cmake/Foundation")
+  ]
+  ++ corelibsCmakeFlags
+  ++ [
     (lib.cmakeBool "BUILD_TESTING" false)
     # A list of bindings to build, not a boolean: SwiftPM and swift-driver
     # import the Swift ones.

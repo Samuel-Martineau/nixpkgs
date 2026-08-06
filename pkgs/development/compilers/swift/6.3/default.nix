@@ -54,6 +54,15 @@ let
 
     swiftSearchFlags = callPackage ./swift-search-flags.nix { };
 
+    # Where to find the CMake packages for Foundation and libdispatch. On
+    # Darwin both come with the SDK rather than being built here -- the
+    # swift-corelibs-* projects exist only because Linux has no Foundation --
+    # so there is nothing to point at and the flags are empty.
+    corelibsCmakeFlags = lib.optionals (!stdenv.hostPlatform.isDarwin) [
+      (lib.cmakeFeature "dispatch_DIR" "${lib.getDev Dispatch}/lib/cmake/dispatch")
+      (lib.cmakeFeature "Foundation_DIR" "${lib.getDev Foundation}/lib/cmake/Foundation")
+    ];
+
     swift-argument-parser = callPackage ./swift-argument-parser {
       inherit (llvmPackages) stdenv;
     };
