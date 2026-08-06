@@ -100,6 +100,11 @@ stdenv.mkDerivation {
     makeWrapper
   ];
 
+  # Package.swift files routinely `import Foundation`, and SwiftPM compiles
+  # them with a command line of its own making, so consumers need Foundation
+  # on their search paths whether or not they list it themselves.
+  propagatedBuildInputs = [ Foundation ];
+
   buildInputs = [
     ncurses
     sqlite
