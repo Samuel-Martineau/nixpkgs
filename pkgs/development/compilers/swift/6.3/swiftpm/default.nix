@@ -181,11 +181,14 @@ stdenv.mkDerivation {
   '';
 
   postFixup = ''
-    rpath="${lib.getLib swift-unwrapped}/lib/swift/${swiftOs}"
+    # SwiftPM's own libraries, and the swift-syntax it vendors for the
+    # manifest API, are installed here rather than in a dependency.
+    rpath="$out/lib:$out/lib/swift/host"
+    rpath="$rpath:${lib.getLib swift-unwrapped}/lib/swift/${swiftOs}"
     rpath="$rpath:${Foundation}/lib/swift/${swiftOs}:${Dispatch}/lib/swift/${swiftOs}"
     rpath="$rpath:${lib.concatStringsSep ":" libraryDirs}"
 
-    for binary in $out/bin/.*-wrapped $out/lib/swift/pm/*/*.so; do
+    for binary in $out/bin/.*-wrapped $out/lib/*.so $out/lib/swift/host/*.so $out/lib/swift/pm/*/*.so; do
       [ -f "$binary" ] || continue
       patchelf --print-rpath "$binary" >/dev/null 2>&1 || continue
       patchelf --add-rpath "$rpath" "$binary"

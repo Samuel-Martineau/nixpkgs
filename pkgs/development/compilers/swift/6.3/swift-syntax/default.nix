@@ -61,6 +61,15 @@ stdenv.mkDerivation {
     [ -n "$modules" ] || { echo "error: no Swift modules were built" >&2; exit 1; }
     echo "$modules" | xargs -I{} cp -r {} $out/lib/swift/host/
 
+    # The C shims the Swift modules are overlays on. Their headers are not
+    # installed, but dependents that import the modules need them.
+    for shim in _SwiftSyntaxCShims _SwiftLibraryPluginProviderCShims; do
+      mkdir -p $dev/include/$shim
+      cp $src/Sources/$shim/include/* $dev/include/$shim/
+      [ -e $dev/include/$shim/module.modulemap ] \
+        || { echo "error: $shim module map was not installed" >&2; exit 1; }
+    done
+
     # Only exports its CMake package into the build tree.
     mkdir -p $dev/lib/cmake/SwiftSyntax
     export dylibExt="${stdenv.hostPlatform.extensions.sharedLibrary}"

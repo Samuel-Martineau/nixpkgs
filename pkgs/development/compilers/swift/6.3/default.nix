@@ -138,6 +138,14 @@ let
       inherit (llvmPackages) stdenv;
     };
 
+    swift-markdown = callPackage ./swift-markdown {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift-format = callPackage ./swift-format {
+      inherit (llvmPackages) stdenv;
+    };
+
     # Components are added here as they are migrated to 6.3:
     # sourcekit-lsp, swift-docc, swift-format.
   };
