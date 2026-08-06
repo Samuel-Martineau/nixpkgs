@@ -240,6 +240,10 @@ stdenv.mkDerivation {
     $out/bin/swift-package --help > /dev/null
   '';
 
+  # Packages built with SwiftPM get their build and check phases from here,
+  # along with swiftpmBinPath for locating the products in installPhase.
+  setupHook = ./setup-hook.sh;
+
   meta = {
     description = "Package manager for the Swift programming language";
     homepage = "https://github.com/swiftlang/swift-package-manager";
