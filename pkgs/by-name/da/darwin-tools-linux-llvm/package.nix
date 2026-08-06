@@ -9,11 +9,17 @@
 # binaries from Linux.
 #
 # Upstream (xtool-org/darwin-tools-linux-llvm) distributes a statically linked
-# tarball built from a fork of llvm-project, but that fork carries no changes
-# of its own — it pins an unmodified commit of swiftlang's `next` branch — and
-# the three tools it selects are stock LLVM: the Mach-O flavour of lld, the
-# Darwin archiver, and the debug symbol linker. Nixpkgs already builds all of
-# them, so assemble the toolset from those rather than compiling LLVM again.
+# tarball built from its own fork of llvm-project. That fork exists to undo a
+# restriction Swift's fork of LLVM adds: swiftlang's lld refuses outright to
+# link for platforms it does not claim to support, and xtool's fork downgrades
+# that refusal to a warning when the host is not Apple, so that linking works
+# on Linux.
+#
+# Stock LLVM never had the restriction — its lld only rejects an input whose
+# platform differs from the target platform — so building these tools from
+# Nixpkgs' LLVM avoids the problem rather than patching around it, and tracks a
+# far newer LLVM than the fork, which is pinned to a 2025 branch of Swift's
+# 20240723 stable release.
 
 runCommand "darwin-tools-linux-llvm-${llvmPackages.llvm.version}"
   {
