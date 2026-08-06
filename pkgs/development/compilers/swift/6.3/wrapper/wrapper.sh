@@ -25,6 +25,10 @@ progName="$(basename "$prog")"
 firstArg="${params[0]:-}"
 isFrontend=0
 isRepl=0
+# Arguments that have to be passed to the program directly rather than through
+# a response file.
+progArgs=()
+useResponseFile="${NIX_CC_USE_RESPONSE_FILE:-@use_response_file_by_default@}"
 
 # These checks follow `shouldRunAsSubcommand`.
 if [[ "$progName" == swift ]]; then
@@ -76,8 +80,17 @@ if [[
     ( "$progName" == "swift" || "$progName" == "swiftc" )
 ]]; then
     prog=@swiftDriver@
-    # Driver mode must be the very first argument.
-    extraBefore+=( "--driver-mode=$progName" )
+    # The driver takes its behaviour from the name it was invoked under, and
+    # only accepts `swift` and `swiftc`. It reads this before expanding any
+    # response file, so it cannot be passed inside one, and it has to be the
+    # very first argument.
+    progArgs+=( "--driver-mode=$progName" )
+
+    # Don't hand the driver a response file: it passes the same one on to
+    # swift-autolink-extract, which then reads flags meant for the driver and
+    # rejects them. The driver writes response files for its own subprocesses
+    # where they are needed.
+    useResponseFile=0
     if [[ $isRepl = 1 ]]; then
         extraBefore+=( "-repl" )
     fi
@@ -85,9 +98,6 @@ if [[
     # Ensure swift-driver invokes the unwrapped frontend (instead of finding
     # the wrapped one via PATH), because we don't have to wrap a second time.
     export SWIFT_DRIVER_SWIFT_FRONTEND_EXEC="@swift@/bin/swift-frontend"
-
-    # Ensure swift-driver can find the LLDB with Swift support for the REPL.
-    export SWIFT_DRIVER_LLDB_EXEC="@swift@/bin/lldb"
 fi
 
 path_backup="$PATH"
@@ -265,7 +275,7 @@ for ((i=0; i < ${#extraBefore[@]}; i++));do
         # TODO: Assumes macOS.
         extraBefore[i]="${extraBefore[i]/-apple-darwin/-apple-macosx${MACOSX_DEPLOYMENT_TARGET:-11.0}}"
         ;;
-    -march=*|-mcpu=*|-mfloat-abi=*|-mfpu=*|-mmode=*|-mthumb|-marm|-mtune=*|-Werror=*)
+    -march=*|-mcpu=*|-mfloat-abi=*|-mfpu=*|-mmode=*|-mthumb|-marm|-mtune=*|-Werror=*|-mtls-dialect=*|-mcmodel=*|-mstrict-align|-mno-strict-align)
         [[ i -gt 0 && ${extraBefore[i-1]} == -Xcc ]] && continue
         extraBefore=(
             "${extraBefore[@]:0:i}"
@@ -300,13 +310,13 @@ fi
 PATH="$path_backup"
 # Old bash workaround, see above.
 
-if (( "${NIX_CC_USE_RESPONSE_FILE:-@use_response_file_by_default@}" >= 1 )); then
-    exec "$prog" @<(printf "%q\n" \
+if (( "$useResponseFile" >= 1 )); then
+    exec "$prog" ${progArgs+"${progArgs[@]}"} @<(printf "%q\n" \
        ${extraBefore+"${extraBefore[@]}"} \
        ${params+"${params[@]}"} \
        ${extraAfter+"${extraAfter[@]}"})
 else
-    exec "$prog" \
+    exec "$prog" ${progArgs+"${progArgs[@]}"} \
        ${extraBefore+"${extraBefore[@]}"} \
        ${params+"${params[@]}"} \
        ${extraAfter+"${extraAfter[@]}"}

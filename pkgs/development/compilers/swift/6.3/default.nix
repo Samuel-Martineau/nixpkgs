@@ -70,6 +70,39 @@ let
       inherit (llvmPackages) stdenv;
     };
 
+    # Pinned dependencies SwiftPM and swift-build are built against. Upstream
+    # builds these as part of the same CMake bootstrap and never installs
+    # them, so each needs a hand-written CMake package (glue.cmake) describing
+    # what it installed.
+    swift-system = callPackage ./swift-system {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift-collections = callPackage ./swift-collections {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift-tools-protocols = callPackage ./swift-tools-protocols {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift-asn1 = callPackage ./swift-asn1 {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift-crypto = callPackage ./swift-crypto {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift-certificates = callPackage ./swift-certificates {
+      inherit (llvmPackages) stdenv;
+    };
+
+    swift = callPackage ./wrapper {
+      inherit (llvmPackages) clang;
+      swift = swift-unwrapped;
+    };
+
     XCTest = callPackage ./xctest {
       inherit (llvmPackages) stdenv;
     };
