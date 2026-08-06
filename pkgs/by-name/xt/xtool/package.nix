@@ -97,13 +97,19 @@ swiftStdenv.mkDerivation (finalAttrs: {
   # against the default GCC's libstdc++ rather than needing an older one.
   # -Xcc reaches C compilation and -Xcxx C++; the vendored BoringSSL and zsign
   # are C++, so both are needed.
+  #
+  # -idirafter rather than -isystem: libstdc++'s <cstdlib> reaches the libc
+  # header with `#include_next <stdlib.h>`, which searches only the
+  # directories *after* the one holding the file doing the including. An
+  # -isystem entry lands before the C++ directory and is therefore skipped;
+  # -idirafter puts it at the very end, where include_next will find it.
   ++ lib.concatMap (dir: [
     "-Xcc"
-    "-isystem"
+    "-idirafter"
     "-Xcc"
     dir
     "-Xcxx"
-    "-isystem"
+    "-idirafter"
     "-Xcxx"
     dir
   ]) (
