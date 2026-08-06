@@ -40,17 +40,33 @@
 let
   sources = callPackage ../sources.nix { };
 
-  inherit (stdenv) targetPlatform;
+  inherit (stdenv) targetPlatform hostPlatform;
 
-  swiftOs = targetPlatform.parsed.kernel.name;
-  swiftArch = targetPlatform.parsed.cpu.name;
+  # Swift uses the xcrun naming convention on Darwin rather than the kernel
+  # name. See the `configure_sdk_darwin` calls in its CMake files.
+  swiftOs =
+    if targetPlatform.isDarwin then
+      {
+        "macos" = "macosx";
+        "ios" = "iphoneos";
+      }
+      .${targetPlatform.darwinPlatform}
+        or (throw "Cannot build Swift for target Darwin platform '${targetPlatform.darwinPlatform}'")
+    else
+      targetPlatform.parsed.kernel.name;
+
+  # Apple calls the architecture arm64, except on Linux, where it is aarch64.
+  swiftArch = if hostPlatform.isDarwin then hostPlatform.darwinArch else targetPlatform.parsed.cpu.name;
 
   # Clang resource directory version of the vendored LLVM (major only).
   clangVersion = "21";
 
-  # On Linux, binaries are installed to `lib/swift/<OS>/<ARCH>`.
+  # On Darwin a `.swiftmodule` is a directory under `lib/swift/<OS>` holding a
+  # binary per architecture; elsewhere the modules live in
+  # `lib/swift/<OS>/<ARCH>`.
   swiftLibSubdir = "lib/swift/${swiftOs}";
-  swiftModuleSubdir = "lib/swift/${swiftOs}/${swiftArch}";
+  swiftModuleSubdir =
+    if hostPlatform.isDarwin then "lib/swift/${swiftOs}" else "lib/swift/${swiftOs}/${swiftArch}";
 
   # And then there's also a separate subtree for statically linked  modules.
   toStaticSubdir = lib.replaceStrings [ "/swift/" ] [ "/swift_static/" ];
