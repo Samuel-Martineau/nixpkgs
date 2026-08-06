@@ -20,6 +20,29 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-DnnDT4egw00tvy84PuyvSKINjVwueg7QRSQrwD81qbg=";
   };
 
+  # The `protoc` target builds Google's C++ protobuf compiler out of the
+  # Sources/protobuf submodule, which is not fetched, along with the plugin
+  # that drives it. SwiftPM 6 rejects a manifest naming an empty target even
+  # when nothing asks to build it, where 5.10 tolerated one. protoc-gen-swift
+  # is a plugin *for* protoc and never needs protoc itself.
+  postPatch = ''
+    awk '
+      /^        \.(executable|executableTarget|plugin)\($/ {
+          hdr = $0; getline nm;
+          if (nm ~ /^            name: "(protoc|SwiftProtobufPlugin)",$/) { drop = 1; next }
+          print hdr; print nm; next
+      }
+      drop && /^        \),$/ { drop = 0; next }
+      !drop
+    ' Package.swift > Package.swift.new
+    mv Package.swift.new Package.swift
+
+    if grep -q '"protoc"' Package.swift; then
+      echo "error: protoc references remain in the manifest" >&2
+      exit 1
+    fi
+  '';
+
   nativeBuildInputs = [
     swift
     swiftpm

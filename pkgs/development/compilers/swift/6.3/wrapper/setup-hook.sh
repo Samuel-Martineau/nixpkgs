@@ -2,7 +2,12 @@
 swiftWrapper_addImports () {
     # Include subdirectories following both the Swift platform convention, and
     # a simple `lib/swift` for Nix convenience.
-    for subdir in @swiftModuleSubdir@ @swiftStaticModuleSubdir@ lib/swift; do
+    #
+    # The library subdirectory is searched for modules too. The toolchain's own
+    # modules sit beside the architecture, in lib/swift/<os>/<arch>, but a
+    # library packaged separately puts its module in lib/swift/<os> next to the
+    # library itself -- which is where Foundation and Dispatch keep theirs.
+    for subdir in @swiftModuleSubdir@ @swiftStaticModuleSubdir@ @swiftLibSubdir@ @swiftStaticLibSubdir@ lib/swift; do
         if [[ -d "$1/$subdir" ]]; then
             export NIX_SWIFTFLAGS_COMPILE+=" -I $1/$subdir"
         fi
